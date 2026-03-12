@@ -38,4 +38,8 @@ func TestRunIDE(t *testing.T) {
 	if !mock.hasCall("rename-window", "-t", "test_ide:0", "test: ide") {
 		t.Error("expected window to be renamed")
 	}
+
+	if !mock.hasCall("set-window-option", "-t", "test_ide:0", "automatic-rename", "off") {
+		t.Error("expected automatic-rename to be disabled")
+	}
 }

@@ -54,6 +54,14 @@ func TestRunWtree(t *testing.T) {
 		t.Error("expected second pane resized to 100")
 	}
 
+	// Verify window title and automatic-rename disabled
+	if !mock.hasCall("rename-window", "-t", "test_wtree:0", "test: wtree") {
+		t.Error("expected window to be renamed")
+	}
+	if !mock.hasCall("set-window-option", "-t", "test_wtree:0", "automatic-rename", "off") {
+		t.Error("expected automatic-rename to be disabled")
+	}
+
 	// Verify focus on first top pane
 	if !mock.hasCall("select-pane", "-t", "%0") {
 		t.Error("expected first top pane to be selected")
