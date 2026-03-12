@@ -33,6 +33,10 @@ func init() {
 	rootCmd.Flags().IntVarP(&numAgents, "num", "n", 2, "number of cc -w panes in agent mode")
 }
 
+func sessionName(name, mode string) string {
+	return strings.ReplaceAll(name, ".", "_") + "_" + mode
+}
+
 func run(cmd *cobra.Command, args []string) error {
 	name := ""
 	if len(args) > 0 {
@@ -45,35 +49,20 @@ func run(cmd *cobra.Command, args []string) error {
 		name = filepath.Base(cwd)
 	}
 
-	sessionName := strings.ReplaceAll(name, ".", "_") + "_" + mode
+	sn := sessionName(name, mode)
 
 	switch mode {
 	case "ide":
-		return runIDE(sessionName)
+		return runIDE(sn)
 	case "agent":
-		return runAgent(sessionName, numAgents)
+		return runAgent(sn, numAgents)
 	default:
 		return fmt.Errorf("unknown mode: %s (available: ide, agent)", mode)
 	}
 }
 
-func tmux(args ...string) (string, error) {
-	out, err := exec.Command("tmux", args...).CombinedOutput()
-	return strings.TrimSpace(string(out)), err
-}
-
-func tmuxOutput(args ...string) (string, error) {
-	out, err := exec.Command("tmux", args...).Output()
-	return strings.TrimSpace(string(out)), err
-}
-
-func hasSession(name string) bool {
-	_, err := tmux("has-session", "-t", "="+name)
-	return err == nil
-}
-
 func handleExistingSession(sessionName string) (bool, error) {
-	if !hasSession(sessionName) {
+	if !runner.HasSession(sessionName) {
 		return false, nil
 	}
 
@@ -85,23 +74,14 @@ func handleExistingSession(sessionName string) (bool, error) {
 	reply = strings.TrimSpace(strings.ToLower(reply))
 
 	if reply == "n" {
-		_, err := tmux("kill-session", "-t", "="+sessionName)
+		_, err := runner.Run("kill-session", "-t", "="+sessionName)
 		return false, err
 	}
 
-	return true, attachSession(sessionName)
+	return true, runner.Attach(sessionName)
 }
 
-func attachSession(sessionName string) error {
-	fmt.Printf("\033]0;%s\007", sessionName)
-	c := exec.Command("tmux", "attach-session", "-t", "="+sessionName)
-	c.Stdin = os.Stdin
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	return c.Run()
-}
-
-func isGitRepo() bool {
+var isGitRepo = func() bool {
 	_, err := exec.Command("git", "rev-parse", "--is-inside-work-tree").Output()
 	return err == nil
 }
