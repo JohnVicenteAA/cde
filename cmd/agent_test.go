@@ -39,10 +39,10 @@ func TestRunAgent(t *testing.T) {
 	}
 
 	// Verify top panes get cc -w
-	if !mock.hasCall("send-keys", "-t", "%0", "clear && cc -w", "Enter") {
+	if !mock.hasCall("send-keys", "-t", "%0", "clear && claude --worktree", "Enter") {
 		t.Error("expected cc -w in first top pane")
 	}
-	if !mock.hasCall("send-keys", "-t", "%3", "clear && cc -w", "Enter") {
+	if !mock.hasCall("send-keys", "-t", "%3", "clear && claude --worktree", "Enter") {
 		t.Error("expected cc -w in second top pane")
 	}
 

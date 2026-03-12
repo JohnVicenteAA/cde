@@ -21,18 +21,18 @@ If no name is given, the current directory name is used.
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--mode` | `-m` | `ide` | Session mode (`ide`, `agent`) |
-| `--num` | `-n` | `2` | Number of `cc -w` panes in agent mode |
+| `--num` | `-n` | `2` | Number of `claude --worktree` panes in agent mode |
 
 ## Modes
 
 ### ide
 
-Default mode. Opens a tmux session with vim and two shell panes.
+Default mode. Opens a tmux session with nvim and two shell panes.
 
 ```
 ┌──────────┬──────────┐
 │          │          │
-│   vim    │  shell   │
+│   nvim    │  shell   │
 │          ├──────────┤
 │          │  shell   │
 └──────────┴──────────┘
@@ -49,7 +49,7 @@ Opens a tmux session with N [Claude Code](https://claude.ai/claude-code) worktre
 
 ```
 ┌──────────┬──────────┐
-│  cc -w   │  cc -w   │
+│  claude --worktree   │  claude --worktree   │
 ├──────────┼──────────┤
 │ lazygit  │lazydocker│
 └──────────┴──────────┘
@@ -74,7 +74,7 @@ If a session already exists, you'll be prompted to reattach or replace it.
 ## Dependencies
 
 - [tmux](https://github.com/tmux/tmux)
-- [neovim](https://neovim.io/) (ide mode)
+- [neonvim](https://neonvim.io/) (ide mode)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (agent mode)
 - [lazygit](https://github.com/jesseduffield/lazygit) (agent mode)
 - [lazydocker](https://github.com/jesseduffield/lazydocker) (agent mode)

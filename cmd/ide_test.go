@@ -27,8 +27,8 @@ func TestRunIDE(t *testing.T) {
 		t.Error("expected vertical split")
 	}
 
-	if !mock.hasCall("send-keys", "-t", "test_ide:0.0", "vim", "Enter") {
-		t.Error("expected vim to be launched in pane 0")
+	if !mock.hasCall("send-keys", "-t", "test_ide:0.0", "nvim", "Enter") {
+		t.Error("expected nvim to be launched in pane 0")
 	}
 
 	if !mock.hasCall("select-pane", "-t", "test_ide:0.0") {

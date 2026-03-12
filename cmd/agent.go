@@ -49,7 +49,7 @@ func runAgent(sessionName string, n int) error {
 
 	// Send cc -w to each top pane
 	for _, pane := range topPanes {
-		runner.Run("send-keys", "-t", pane, "clear && cc -w", "Enter")
+		runner.Run("send-keys", "-t", pane, "clear && claude --worktree", "Enter")
 	}
 
 	runner.Run("select-pane", "-t", topID)
