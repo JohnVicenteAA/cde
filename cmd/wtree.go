@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-func runWtree(sessionName string, n int) error {
+func runWtree(sessionName string, n int, windowTitle string) error {
 	if !isGitRepo() {
 		return fmt.Errorf("wtree mode requires a git repository")
 	}
@@ -16,6 +16,7 @@ func runWtree(sessionName string, n int) error {
 	}
 
 	runner.Run("new-session", "-d", "-s", sessionName)
+	runner.Run("rename-window", "-t", sessionName+":0", windowTitle)
 
 	// Get the initial pane ID
 	topID, _ := runner.Run("display-message", "-t", sessionName+":0.0", "-p", "#{pane_id}")

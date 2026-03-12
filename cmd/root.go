@@ -51,11 +51,13 @@ func run(cmd *cobra.Command, args []string) error {
 
 	sn := sessionName(name, mode)
 
+	windowTitle := name + ": " + mode
+
 	switch mode {
 	case "ide":
-		return runIDE(sn)
+		return runIDE(sn, windowTitle)
 	case "wtree":
-		return runWtree(sn, numAgents)
+		return runWtree(sn, numAgents, windowTitle)
 	default:
 		return fmt.Errorf("unknown mode: %s (available: ide, wtree)", mode)
 	}

@@ -16,7 +16,7 @@ func TestRunWtree(t *testing.T) {
 	isGitRepo = func() bool { return true }
 	defer func() { isGitRepo = origIsGitRepo }()
 
-	err := runWtree("test_wtree", 2)
+	err := runWtree("test_wtree", 2, "test: wtree")
 	if err != nil {
 		t.Fatalf("runWtree returned error: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestRunWtreeRequiresGitRepo(t *testing.T) {
 	isGitRepo = func() bool { return false }
 	defer func() { isGitRepo = origIsGitRepo }()
 
-	err := runWtree("test_wtree", 2)
+	err := runWtree("test_wtree", 2, "test: wtree")
 	if err == nil {
 		t.Fatal("expected error when not in git repo")
 	}
@@ -91,7 +91,7 @@ func TestRunWtreeCustomPaneCount(t *testing.T) {
 	isGitRepo = func() bool { return true }
 	defer func() { isGitRepo = origIsGitRepo }()
 
-	err := runWtree("test_wtree", 3)
+	err := runWtree("test_wtree", 3, "test: wtree")
 	if err != nil {
 		t.Fatalf("runWtree returned error: %v", err)
 	}

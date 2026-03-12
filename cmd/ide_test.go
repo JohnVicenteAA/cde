@@ -6,7 +6,7 @@ func TestRunIDE(t *testing.T) {
 	mock := newMockTmux()
 	runner = mock
 
-	err := runIDE("test_ide")
+	err := runIDE("test_ide", "test: ide")
 	if err != nil {
 		t.Fatalf("runIDE returned error: %v", err)
 	}
@@ -33,5 +33,9 @@ func TestRunIDE(t *testing.T) {
 
 	if !mock.hasCall("select-pane", "-t", "test_ide:0.0") {
 		t.Error("expected pane 0 to be selected")
+	}
+
+	if !mock.hasCall("rename-window", "-t", "test_ide:0", "test: ide") {
+		t.Error("expected window to be renamed")
 	}
 }
