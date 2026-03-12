@@ -30,12 +30,12 @@ If no name is given, the current directory name is used.
 Default mode. Opens a tmux session with nvim and two shell panes.
 
 ```
-┌──────────┬──────────┐
-│          │          │
-│   nvim    │  shell   │
-│          ├──────────┤
-│          │  shell   │
-└──────────┴──────────┘
++----------+----------+
+|          |          |
+|   nvim   |  shell   |
+|          +----------+
+|          |  shell   |
++----------+----------+
 ```
 
 ```sh
@@ -48,11 +48,11 @@ cde myproject    # named session: myproject_ide
 Opens a tmux session with N [Claude Code](https://claude.ai/claude-code) worktree panes, lazygit, and lazydocker. Requires a git repository.
 
 ```
-┌──────────┬──────────┐
-│  claude --worktree   │  claude --worktree   │
-├──────────┼──────────┤
-│ lazygit  │lazydocker│
-└──────────┴──────────┘
++--------------------+--------------------+
+| claude --worktree  | claude --worktree  |
++--------------------+--------------------+
+|      lazygit       |    lazydocker      |
++--------------------+--------------------+
 ```
 
 ```sh
