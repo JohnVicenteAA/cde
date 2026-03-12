@@ -29,8 +29,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&mode, "mode", "m", "ide", "session mode (ide, agent)")
-	rootCmd.Flags().IntVarP(&numAgents, "num", "n", 2, "number of cc -w panes in agent mode")
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "ide", "session mode (ide, wtree)")
+	rootCmd.Flags().IntVarP(&numAgents, "num", "n", 2, "number of claude --worktree panes in wtree mode")
 }
 
 func sessionName(name, mode string) string {
@@ -54,10 +54,10 @@ func run(cmd *cobra.Command, args []string) error {
 	switch mode {
 	case "ide":
 		return runIDE(sn)
-	case "agent":
-		return runAgent(sn, numAgents)
+	case "wtree":
+		return runWtree(sn, numAgents)
 	default:
-		return fmt.Errorf("unknown mode: %s (available: ide, agent)", mode)
+		return fmt.Errorf("unknown mode: %s (available: ide, wtree)", mode)
 	}
 }
 

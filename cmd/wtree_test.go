@@ -2,12 +2,12 @@ package cmd
 
 import "testing"
 
-func TestRunAgent(t *testing.T) {
+func TestRunWtree(t *testing.T) {
 	mock := newMockTmux()
-	mock.outputs["display-message -t test_agent:0.0 -p #{pane_id}"] = "%0"
+	mock.outputs["display-message -t test_wtree:0.0 -p #{pane_id}"] = "%0"
 	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%1"
 	mock.outputs["split-window -h -p 50 -t %1 -P -F #{pane_id}"] = "%2"
-	mock.outputs["display-message -t test_agent:0.2 -p #{pane_id}"] = "%2"
+	mock.outputs["display-message -t test_wtree:0.2 -p #{pane_id}"] = "%2"
 	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%3"
 	mock.outputs["display-message -p #{window_width}"] = "200"
 	runner = mock
@@ -16,17 +16,17 @@ func TestRunAgent(t *testing.T) {
 	isGitRepo = func() bool { return true }
 	defer func() { isGitRepo = origIsGitRepo }()
 
-	err := runAgent("test_agent", 2)
+	err := runWtree("test_wtree", 2)
 	if err != nil {
-		t.Fatalf("runAgent returned error: %v", err)
+		t.Fatalf("runWtree returned error: %v", err)
 	}
 
-	if mock.attached != "test_agent" {
-		t.Errorf("expected attach to %q, got %q", "test_agent", mock.attached)
+	if mock.attached != "test_wtree" {
+		t.Errorf("expected attach to %q, got %q", "test_wtree", mock.attached)
 	}
 
 	// Verify session created
-	if !mock.hasCall("new-session", "-d", "-s", "test_agent") {
+	if !mock.hasCall("new-session", "-d", "-s", "test_wtree") {
 		t.Error("expected new-session call")
 	}
 
@@ -38,12 +38,12 @@ func TestRunAgent(t *testing.T) {
 		t.Error("expected lazydocker in bottom-right pane")
 	}
 
-	// Verify top panes get cc -w
+	// Verify top panes get claude --worktree
 	if !mock.hasCall("send-keys", "-t", "%0", "clear && claude --worktree", "Enter") {
-		t.Error("expected cc -w in first top pane")
+		t.Error("expected claude --worktree in first top pane")
 	}
 	if !mock.hasCall("send-keys", "-t", "%3", "clear && claude --worktree", "Enter") {
-		t.Error("expected cc -w in second top pane")
+		t.Error("expected claude --worktree in second top pane")
 	}
 
 	// Verify pane resizing
@@ -60,7 +60,7 @@ func TestRunAgent(t *testing.T) {
 	}
 }
 
-func TestRunAgentRequiresGitRepo(t *testing.T) {
+func TestRunWtreeRequiresGitRepo(t *testing.T) {
 	mock := newMockTmux()
 	runner = mock
 
@@ -68,21 +68,21 @@ func TestRunAgentRequiresGitRepo(t *testing.T) {
 	isGitRepo = func() bool { return false }
 	defer func() { isGitRepo = origIsGitRepo }()
 
-	err := runAgent("test_agent", 2)
+	err := runWtree("test_wtree", 2)
 	if err == nil {
 		t.Fatal("expected error when not in git repo")
 	}
-	if err.Error() != "agent mode requires a git repository" {
+	if err.Error() != "wtree mode requires a git repository" {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-func TestRunAgentCustomPaneCount(t *testing.T) {
+func TestRunWtreeCustomPaneCount(t *testing.T) {
 	mock := newMockTmux()
-	mock.outputs["display-message -t test_agent:0.0 -p #{pane_id}"] = "%0"
+	mock.outputs["display-message -t test_wtree:0.0 -p #{pane_id}"] = "%0"
 	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%1"
 	mock.outputs["split-window -h -p 50 -t %1 -P -F #{pane_id}"] = "%2"
-	mock.outputs["display-message -t test_agent:0.2 -p #{pane_id}"] = "%2"
+	mock.outputs["display-message -t test_wtree:0.2 -p #{pane_id}"] = "%2"
 	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%3"
 	mock.outputs["display-message -p #{window_width}"] = "300"
 	runner = mock
@@ -91,9 +91,9 @@ func TestRunAgentCustomPaneCount(t *testing.T) {
 	isGitRepo = func() bool { return true }
 	defer func() { isGitRepo = origIsGitRepo }()
 
-	err := runAgent("test_agent", 3)
+	err := runWtree("test_wtree", 3)
 	if err != nil {
-		t.Fatalf("runAgent returned error: %v", err)
+		t.Fatalf("runWtree returned error: %v", err)
 	}
 
 	// With n=3, split-window -h should be called twice

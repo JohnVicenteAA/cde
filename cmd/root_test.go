@@ -9,9 +9,9 @@ func TestSessionName(t *testing.T) {
 		want string
 	}{
 		{"myproject", "ide", "myproject_ide"},
-		{"myproject", "agent", "myproject_agent"},
+		{"myproject", "wtree", "myproject_wtree"},
 		{"my.project", "ide", "my_project_ide"},
-		{"a.b.c", "agent", "a_b_c_agent"},
+		{"a.b.c", "wtree", "a_b_c_wtree"},
 		{"nodots", "ide", "nodots_ide"},
 	}
 

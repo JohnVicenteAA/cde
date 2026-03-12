@@ -20,8 +20,8 @@ If no name is given, the current directory name is used.
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--mode` | `-m` | `ide` | Session mode (`ide`, `agent`) |
-| `--num` | `-n` | `2` | Number of `claude --worktree` panes in agent mode |
+| `--mode` | `-m` | `ide` | Session mode (`ide`, `wtree`) |
+| `--num` | `-n` | `2` | Number of `claude --worktree` panes in wtree mode |
 
 ## Modes
 
@@ -43,7 +43,7 @@ cde              # uses current dir name
 cde myproject    # named session: myproject_ide
 ```
 
-### agent
+### wtree
 
 Opens a tmux session with N [Claude Code](https://claude.ai/claude-code) worktree panes, lazygit, and lazydocker. Requires a git repository.
 
@@ -56,8 +56,8 @@ Opens a tmux session with N [Claude Code](https://claude.ai/claude-code) worktre
 ```
 
 ```sh
-cde -m agent         # 2 claude panes (default)
-cde -m agent -n 4    # 4 claude panes
+cde -m wtree         # 2 claude panes (default)
+cde -m wtree -n 4    # 4 claude panes
 ```
 
 ## Session naming
@@ -66,7 +66,7 @@ Sessions are named `{name}_{mode}`, with dots replaced by underscores. This allo
 
 ```sh
 cde -m ide      # session: dirname_ide
-cde -m agent    # session: dirname_agent
+cde -m wtree    # session: dirname_wtree
 ```
 
 If a session already exists, you'll be prompted to reattach or replace it.
@@ -75,6 +75,6 @@ If a session already exists, you'll be prompted to reattach or replace it.
 
 - [tmux](https://github.com/tmux/tmux)
 - [neonvim](https://neonvim.io/) (ide mode)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (agent mode)
-- [lazygit](https://github.com/jesseduffield/lazygit) (agent mode)
-- [lazydocker](https://github.com/jesseduffield/lazydocker) (agent mode)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (wtree mode)
+- [lazygit](https://github.com/jesseduffield/lazygit) (wtree mode)
+- [lazydocker](https://github.com/jesseduffield/lazydocker) (wtree mode)

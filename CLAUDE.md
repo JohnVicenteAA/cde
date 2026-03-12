@@ -10,7 +10,7 @@
 - `cmd/root.go` — CLI flags, session naming, shared helpers
 - `cmd/tmux.go` — `TmuxRunner` interface and real implementation
 - `cmd/ide.go` — ide mode layout
-- `cmd/agent.go` — agent mode layout
+- `cmd/wtree.go` — wtree mode layout
 - `cmd/mock_tmux_test.go` — mock `TmuxRunner` for tests
 
 ## Commands

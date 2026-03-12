@@ -5,9 +5,9 @@ import (
 	"strconv"
 )
 
-func runAgent(sessionName string, n int) error {
+func runWtree(sessionName string, n int) error {
 	if !isGitRepo() {
-		return fmt.Errorf("agent mode requires a git repository")
+		return fmt.Errorf("wtree mode requires a git repository")
 	}
 
 	reattach, err := handleExistingSession(sessionName)
