@@ -8,6 +8,7 @@ func runIDE(sessionName, windowTitle string) error {
 
 	runner.Run("new-session", "-d", "-s", sessionName)
 	runner.Run("rename-window", "-t", sessionName+":0", windowTitle)
+	runner.Run("set-window-option", "-t", sessionName+":0", "automatic-rename", "off")
 	runner.Run("split-window", "-h", "-t", sessionName+":0")
 	runner.Run("split-window", "-v", "-t", sessionName+":0.1")
 	runner.Run("send-keys", "-t", sessionName+":0.0", "nvim", "Enter")

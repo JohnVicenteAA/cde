@@ -17,6 +17,7 @@ func runWtree(sessionName string, n int, windowTitle string) error {
 
 	runner.Run("new-session", "-d", "-s", sessionName)
 	runner.Run("rename-window", "-t", sessionName+":0", windowTitle)
+	runner.Run("set-window-option", "-t", sessionName+":0", "automatic-rename", "off")
 
 	// Get the initial pane ID
 	topID, _ := runner.Run("display-message", "-t", sessionName+":0.0", "-p", "#{pane_id}")
