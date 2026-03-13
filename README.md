@@ -71,6 +71,22 @@ cde -m wtree    # session: dirname_wtree
 
 If a session already exists, you'll be prompted to reattach or replace it.
 
+## Example `.tmux.conf`
+
+```tmux
+# List of plugins
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-sensible'
+set -g @plugin 'christoomey/vim-tmux-navigator'
+set -g @plugin 'tmux-plugins/tmux-resurrect'
+
+set -g mouse on
+set -g set-titles on
+set -g set-titles-string "#{window_name}"
+# Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
+run '~/.tmux/plugins/tpm/tpm'
+```
+
 ## Dependencies
 
 - [tmux](https://github.com/tmux/tmux)
