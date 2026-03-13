@@ -2,6 +2,19 @@
 
 A CLI tool that creates preconfigured tmux coding environments.
 
+## Requirements
+
+The following dependencies must be installed before using `cde`:
+
+| Dependency | Required for | Link |
+|------------|-------------|------|
+| [Go](https://go.dev/) | Building/installing `cde` | https://go.dev/dl/ |
+| [tmux](https://github.com/tmux/tmux) | All modes | https://github.com/tmux/tmux/wiki/Installing |
+| [Neovim](https://neovim.io/) | `ide` mode | https://neovim.io/ |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `wtree` mode | https://docs.anthropic.com/en/docs/claude-code |
+| [lazygit](https://github.com/jesseduffield/lazygit) | `wtree` mode | https://github.com/jesseduffield/lazygit#installation |
+| [lazydocker](https://github.com/jesseduffield/lazydocker) | `wtree` mode | https://github.com/jesseduffield/lazydocker#installation |
+
 ## Install
 
 ```sh
@@ -71,7 +84,9 @@ cde -m wtree    # session: dirname_wtree
 
 If a session already exists, you'll be prompted to reattach or replace it.
 
-## Example `.tmux.conf`
+## Suggested tmux configuration
+
+The following `.tmux.conf` is optional but recommended for a better experience with `cde`:
 
 ```tmux
 # List of plugins
@@ -86,11 +101,3 @@ set -g set-titles-string "#{window_name}"
 # Initialize TMUX plugin manager (keep this line at the very bottom of tmux.conf)
 run '~/.tmux/plugins/tpm/tpm'
 ```
-
-## Dependencies
-
-- [tmux](https://github.com/tmux/tmux)
-- [neonvim](https://neonvim.io/) (ide mode)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (wtree mode)
-- [lazygit](https://github.com/jesseduffield/lazygit) (wtree mode)
-- [lazydocker](https://github.com/jesseduffield/lazydocker) (wtree mode)
