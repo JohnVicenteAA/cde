@@ -3,7 +3,12 @@ package cmd
 import (
 	"fmt"
 	"strconv"
+	"time"
 )
+
+// worktreeDelay is the pause between launching Claude instances to avoid
+// git worktree creation races. Tests set this to 0.
+var worktreeDelay = 3 * time.Second
 
 func runWtree(sessionName string, n int, windowTitle string) error {
 	if !isGitRepo() {
@@ -49,8 +54,12 @@ func runWtree(sessionName string, n int, windowTitle string) error {
 		}
 	}
 
-	// Send cc -w to each top pane
-	for _, pane := range topPanes {
+	// Send cc -w to each top pane, staggering launches to avoid
+	// git worktree creation races that cause Claude to hang
+	for i, pane := range topPanes {
+		if i > 0 {
+			time.Sleep(worktreeDelay)
+		}
 		runner.Run("send-keys", "-t", pane, "clear && claude --worktree", "Enter")
 	}
 

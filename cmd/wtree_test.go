@@ -2,6 +2,10 @@ package cmd
 
 import "testing"
 
+func init() {
+	worktreeDelay = 0
+}
+
 func TestRunWtree(t *testing.T) {
 	mock := newMockTmux()
 	mock.outputs["display-message -t test_wtree:0.0 -p #{pane_id}"] = "%0"
