@@ -52,11 +52,11 @@ func TestRunWtree(t *testing.T) {
 		t.Error("expected claude --worktree test_wtree-1 in column 1 top pane")
 	}
 
-	// Verify lazygit launched in bottom panes watching correct worktree paths
-	if !mock.hasCall("send-keys", "-t", "%10", "lazygit -p .claude/worktrees/test_wtree-0", "Enter") {
+	// Verify lazygit launched in bottom panes with wait loop for worktree readiness
+	if !mock.hasCall("send-keys", "-t", "%10", "while [ ! -e .claude/worktrees/test_wtree-0/.git ]; do sleep 0.3; done; lazygit -p .claude/worktrees/test_wtree-0", "Enter") {
 		t.Error("expected lazygit for worktree 0 in column 0 bottom pane")
 	}
-	if !mock.hasCall("send-keys", "-t", "%11", "lazygit -p .claude/worktrees/test_wtree-1", "Enter") {
+	if !mock.hasCall("send-keys", "-t", "%11", "while [ ! -e .claude/worktrees/test_wtree-1/.git ]; do sleep 0.3; done; lazygit -p .claude/worktrees/test_wtree-1", "Enter") {
 		t.Error("expected lazygit for worktree 1 in column 1 bottom pane")
 	}
 
@@ -116,9 +116,10 @@ func TestRunWtreeColumnPairing(t *testing.T) {
 					t.Errorf("column %d: expected vertical split from top pane %s", i, topPane)
 				}
 
-				// Each bottom pane gets lazygit watching the matching worktree
-				if !mock.hasCall("send-keys", "-t", bottomPane, fmt.Sprintf("lazygit -p %s", worktreePath), "Enter") {
-					t.Errorf("column %d: expected lazygit -p %s in pane %s", i, worktreePath, bottomPane)
+				// Each bottom pane gets lazygit with wait loop for worktree readiness
+				expectedLg := fmt.Sprintf("while [ ! -e %s/.git ]; do sleep 0.3; done; lazygit -p %s", worktreePath, worktreePath)
+				if !mock.hasCall("send-keys", "-t", bottomPane, expectedLg, "Enter") {
+					t.Errorf("column %d: expected lazygit wait+launch in pane %s", i, bottomPane)
 				}
 			}
 		})
