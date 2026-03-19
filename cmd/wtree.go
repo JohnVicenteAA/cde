@@ -8,7 +8,7 @@ import (
 
 // worktreeDelay is the pause between launching Claude instances to avoid
 // git worktree creation races. Tests set this to 0.
-var worktreeDelay = 3 * time.Second
+var worktreeDelay = 1 * time.Second
 
 func runWtree(sessionName string, n int, windowTitle string) error {
 	if !isGitRepo() {
@@ -60,9 +60,9 @@ func runWtree(sessionName string, n int, windowTitle string) error {
 		// Split vertically to create the bottom pane for lazygit
 		bottomPane, _ := runner.Run("split-window", "-v", "-p", "40", "-t", topPane, "-P", "-F", "#{pane_id}")
 
-		// Launch lazygit watching this worktree
+		// Wait for worktree to be a valid git repo before launching lazygit
 		runner.Run("send-keys", "-t", bottomPane,
-			fmt.Sprintf("lazygit -p %s", worktreePath), "Enter")
+			fmt.Sprintf("while [ ! -e %s/.git ]; do sleep 0.3; done; lazygit -p %s", worktreePath, worktreePath), "Enter")
 	}
 
 	runner.Run("select-pane", "-t", col0Top)
