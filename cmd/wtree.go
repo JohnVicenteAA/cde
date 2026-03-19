@@ -24,27 +24,17 @@ func runWtree(sessionName string, n int, windowTitle string) error {
 	runner.Run("rename-window", "-t", sessionName+":0", windowTitle)
 	runner.Run("set-window-option", "-t", sessionName+":0", "automatic-rename", "off")
 
-	// Get the initial pane ID
-	topID, _ := runner.Run("display-message", "-t", sessionName+":0.0", "-p", "#{pane_id}")
+	// Pane 0 is column 0 top
+	col0Top, _ := runner.Run("display-message", "-t", sessionName+":0.0", "-p", "#{pane_id}")
 
-	// Create bottom row (40%)
-	bottomID, _ := runner.Run("split-window", "-v", "-p", "40", "-t", topID, "-P", "-F", "#{pane_id}")
-
-	// Split bottom into lazygit | lazydocker
-	runner.Run("split-window", "-h", "-p", "50", "-t", bottomID, "-P", "-F", "#{pane_id}")
-	runner.Run("send-keys", "-t", bottomID, "lazygit", "Enter")
-	// Bottom right is the next pane after bottomID — target via index offset
-	bottomRightID, _ := runner.Run("display-message", "-t", sessionName+":0.2", "-p", "#{pane_id}")
-	runner.Run("send-keys", "-t", bottomRightID, "lazydocker", "Enter")
-
-	// Split top row into N panes
-	topPanes := []string{topID}
+	// Create columns 1..n-1 by splitting horizontally from column 0
+	topPanes := []string{col0Top}
 	for i := 1; i < n; i++ {
-		newPane, _ := runner.Run("split-window", "-h", "-t", topID, "-P", "-F", "#{pane_id}")
-		topPanes = append(topPanes, newPane)
+		pane, _ := runner.Run("split-window", "-h", "-t", col0Top, "-P", "-F", "#{pane_id}")
+		topPanes = append(topPanes, pane)
 	}
 
-	// Even out top pane widths
+	// Even out column widths
 	windowWidth, _ := runner.Run("display-message", "-p", "#{window_width}")
 	w, _ := strconv.Atoi(windowWidth)
 	if w > 0 && n > 0 {
@@ -54,16 +44,28 @@ func runWtree(sessionName string, n int, windowTitle string) error {
 		}
 	}
 
-	// Send cc -w to each top pane, staggering launches to avoid
-	// git worktree creation races that cause Claude to hang
-	for i, pane := range topPanes {
+	// Split each column vertically and launch claude + lazygit pairs
+	for i, topPane := range topPanes {
 		if i > 0 {
 			time.Sleep(worktreeDelay)
 		}
-		runner.Run("send-keys", "-t", pane, "clear && claude --worktree", "Enter")
+
+		worktreeName := fmt.Sprintf("%s-%d", sessionName, i)
+		worktreePath := fmt.Sprintf(".claude/worktrees/%s", worktreeName)
+
+		// Launch claude in the top pane
+		runner.Run("send-keys", "-t", topPane,
+			fmt.Sprintf("clear && claude --worktree %s", worktreeName), "Enter")
+
+		// Split vertically to create the bottom pane for lazygit
+		bottomPane, _ := runner.Run("split-window", "-v", "-p", "40", "-t", topPane, "-P", "-F", "#{pane_id}")
+
+		// Launch lazygit watching this worktree
+		runner.Run("send-keys", "-t", bottomPane,
+			fmt.Sprintf("lazygit -p %s", worktreePath), "Enter")
 	}
 
-	runner.Run("select-pane", "-t", topID)
+	runner.Run("select-pane", "-t", col0Top)
 
 	return runner.Attach(sessionName)
 }

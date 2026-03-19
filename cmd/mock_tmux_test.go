@@ -7,20 +7,31 @@ type call struct {
 }
 
 type mockTmux struct {
-	calls    []call
-	outputs  map[string]string
-	attached string
+	calls      []call
+	outputs    map[string]string
+	outputSeqs map[string][]string // sequential outputs for repeated calls
+	seqIndex   map[string]int
+	attached   string
 }
 
 func newMockTmux() *mockTmux {
 	return &mockTmux{
-		outputs: make(map[string]string),
+		outputs:    make(map[string]string),
+		outputSeqs: make(map[string][]string),
+		seqIndex:   make(map[string]int),
 	}
 }
 
 func (m *mockTmux) Run(args ...string) (string, error) {
 	m.calls = append(m.calls, call{args: args})
 	key := strings.Join(args, " ")
+	if seq, ok := m.outputSeqs[key]; ok {
+		i := m.seqIndex[key]
+		if i < len(seq) {
+			m.seqIndex[key] = i + 1
+			return seq[i], nil
+		}
+	}
 	if out, ok := m.outputs[key]; ok {
 		return out, nil
 	}

@@ -1,6 +1,9 @@
 package cmd
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func init() {
 	worktreeDelay = 0
@@ -9,11 +12,10 @@ func init() {
 func TestRunWtree(t *testing.T) {
 	mock := newMockTmux()
 	mock.outputs["display-message -t test_wtree:0.0 -p #{pane_id}"] = "%0"
-	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%1"
-	mock.outputs["split-window -h -p 50 -t %1 -P -F #{pane_id}"] = "%2"
-	mock.outputs["display-message -t test_wtree:0.2 -p #{pane_id}"] = "%2"
-	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%3"
+	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%1"
 	mock.outputs["display-message -p #{window_width}"] = "200"
+	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%10"
+	mock.outputs["split-window -v -p 40 -t %1 -P -F #{pane_id}"] = "%11"
 	runner = mock
 
 	origIsGitRepo := isGitRepo
@@ -34,30 +36,6 @@ func TestRunWtree(t *testing.T) {
 		t.Error("expected new-session call")
 	}
 
-	// Verify bottom row: lazygit + lazydocker
-	if !mock.hasCall("send-keys", "-t", "%1", "lazygit", "Enter") {
-		t.Error("expected lazygit in bottom-left pane")
-	}
-	if !mock.hasCall("send-keys", "-t", "%2", "lazydocker", "Enter") {
-		t.Error("expected lazydocker in bottom-right pane")
-	}
-
-	// Verify top panes get claude --worktree
-	if !mock.hasCall("send-keys", "-t", "%0", "clear && claude --worktree", "Enter") {
-		t.Error("expected claude --worktree in first top pane")
-	}
-	if !mock.hasCall("send-keys", "-t", "%3", "clear && claude --worktree", "Enter") {
-		t.Error("expected claude --worktree in second top pane")
-	}
-
-	// Verify pane resizing
-	if !mock.hasCall("resize-pane", "-t", "%0", "-x", "100") {
-		t.Error("expected first pane resized to 100")
-	}
-	if !mock.hasCall("resize-pane", "-t", "%3", "-x", "100") {
-		t.Error("expected second pane resized to 100")
-	}
-
 	// Verify window title and automatic-rename disabled
 	if !mock.hasCall("rename-window", "-t", "test_wtree:0", "test: wtree") {
 		t.Error("expected window to be renamed")
@@ -66,9 +44,84 @@ func TestRunWtree(t *testing.T) {
 		t.Error("expected automatic-rename to be disabled")
 	}
 
+	// Verify claude launched with named worktrees in top panes
+	if !mock.hasCall("send-keys", "-t", "%0", "clear && claude --worktree test_wtree-0", "Enter") {
+		t.Error("expected claude --worktree test_wtree-0 in column 0 top pane")
+	}
+	if !mock.hasCall("send-keys", "-t", "%1", "clear && claude --worktree test_wtree-1", "Enter") {
+		t.Error("expected claude --worktree test_wtree-1 in column 1 top pane")
+	}
+
+	// Verify lazygit launched in bottom panes watching correct worktree paths
+	if !mock.hasCall("send-keys", "-t", "%10", "lazygit -p .claude/worktrees/test_wtree-0", "Enter") {
+		t.Error("expected lazygit for worktree 0 in column 0 bottom pane")
+	}
+	if !mock.hasCall("send-keys", "-t", "%11", "lazygit -p .claude/worktrees/test_wtree-1", "Enter") {
+		t.Error("expected lazygit for worktree 1 in column 1 bottom pane")
+	}
+
+	// Verify pane resizing
+	if !mock.hasCall("resize-pane", "-t", "%0", "-x", "100") {
+		t.Error("expected first column resized to 100")
+	}
+	if !mock.hasCall("resize-pane", "-t", "%1", "-x", "100") {
+		t.Error("expected second column resized to 100")
+	}
+
 	// Verify focus on first top pane
 	if !mock.hasCall("select-pane", "-t", "%0") {
 		t.Error("expected first top pane to be selected")
+	}
+}
+
+func TestRunWtreeColumnPairing(t *testing.T) {
+	for _, n := range []int{1, 2, 3} {
+		t.Run(fmt.Sprintf("n=%d", n), func(t *testing.T) {
+			mock := newMockTmux()
+			mock.outputs["display-message -t sess:0.0 -p #{pane_id}"] = "%0"
+			mock.outputs["display-message -p #{window_width}"] = "300"
+			if n > 1 {
+				seq := make([]string, 0, n-1)
+				for i := 1; i < n; i++ {
+					seq = append(seq, fmt.Sprintf("%%%d", i))
+				}
+				mock.outputSeqs["split-window -h -t %0 -P -F #{pane_id}"] = seq
+			}
+			for i := 0; i < n; i++ {
+				mock.outputs[fmt.Sprintf("split-window -v -p 40 -t %%%d -P -F #{pane_id}", i)] = fmt.Sprintf("%%%d", 10+i)
+			}
+			runner = mock
+
+			origIsGitRepo := isGitRepo
+			isGitRepo = func() bool { return true }
+			defer func() { isGitRepo = origIsGitRepo }()
+
+			if err := runWtree("sess", n, "title"); err != nil {
+				t.Fatalf("runWtree returned error: %v", err)
+			}
+
+			for i := 0; i < n; i++ {
+				topPane := fmt.Sprintf("%%%d", i)
+				bottomPane := fmt.Sprintf("%%%d", 10+i)
+				worktreeName := fmt.Sprintf("sess-%d", i)
+				worktreePath := fmt.Sprintf(".claude/worktrees/%s", worktreeName)
+
+				// Each top pane gets claude with the correct worktree name
+				if !mock.hasCall("send-keys", "-t", topPane, fmt.Sprintf("clear && claude --worktree %s", worktreeName), "Enter") {
+					t.Errorf("column %d: expected claude --worktree %s in pane %s", i, worktreeName, topPane)
+				}
+
+				// The vertical split targets the correct top pane
+				if !mock.hasCall("split-window", "-v", "-p", "40", "-t", topPane, "-P", "-F", "#{pane_id}") {
+					t.Errorf("column %d: expected vertical split from top pane %s", i, topPane)
+				}
+
+				// Each bottom pane gets lazygit watching the matching worktree
+				if !mock.hasCall("send-keys", "-t", bottomPane, fmt.Sprintf("lazygit -p %s", worktreePath), "Enter") {
+					t.Errorf("column %d: expected lazygit -p %s in pane %s", i, worktreePath, bottomPane)
+				}
+			}
+		})
 	}
 }
 
@@ -89,14 +142,14 @@ func TestRunWtreeRequiresGitRepo(t *testing.T) {
 	}
 }
 
-func TestRunWtreeCustomPaneCount(t *testing.T) {
+func TestRunWtreeThreeColumns(t *testing.T) {
 	mock := newMockTmux()
 	mock.outputs["display-message -t test_wtree:0.0 -p #{pane_id}"] = "%0"
-	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%1"
-	mock.outputs["split-window -h -p 50 -t %1 -P -F #{pane_id}"] = "%2"
-	mock.outputs["display-message -t test_wtree:0.2 -p #{pane_id}"] = "%2"
-	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%3"
+	mock.outputSeqs["split-window -h -t %0 -P -F #{pane_id}"] = []string{"%1", "%2"}
 	mock.outputs["display-message -p #{window_width}"] = "300"
+	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%10"
+	mock.outputs["split-window -v -p 40 -t %1 -P -F #{pane_id}"] = "%11"
+	mock.outputs["split-window -v -p 40 -t %2 -P -F #{pane_id}"] = "%12"
 	runner = mock
 
 	origIsGitRepo := isGitRepo
@@ -110,13 +163,37 @@ func TestRunWtreeCustomPaneCount(t *testing.T) {
 
 	// With n=3, split-window -h should be called twice
 	splits := mock.findCalls("split-window")
-	horizontalTopSplits := 0
+	horizontalSplits := 0
 	for _, c := range splits {
-		if len(c.args) >= 4 && c.args[1] == "-h" && c.args[3] == "%0" {
-			horizontalTopSplits++
+		if len(c.args) >= 2 && c.args[1] == "-h" {
+			horizontalSplits++
 		}
 	}
-	if horizontalTopSplits != 2 {
-		t.Errorf("expected 2 horizontal top splits, got %d", horizontalTopSplits)
+	if horizontalSplits != 2 {
+		t.Errorf("expected 2 horizontal splits, got %d", horizontalSplits)
+	}
+
+	// Verify 3 vertical splits (one per column)
+	verticalSplits := 0
+	for _, c := range splits {
+		if len(c.args) >= 2 && c.args[1] == "-v" {
+			verticalSplits++
+		}
+	}
+	if verticalSplits != 3 {
+		t.Errorf("expected 3 vertical splits, got %d", verticalSplits)
+	}
+
+	// Verify all 3 claude launches
+	if !mock.hasCall("send-keys", "-t", "%0", "clear && claude --worktree test_wtree-0", "Enter") {
+		t.Error("expected claude in column 0")
+	}
+	if !mock.hasCall("send-keys", "-t", "%1", "clear && claude --worktree test_wtree-1", "Enter") {
+		t.Error("expected claude in column 1")
+	}
+
+	// Verify pane widths at 100 each
+	if !mock.hasCall("resize-pane", "-t", "%0", "-x", "100") {
+		t.Error("expected column 0 resized to 100")
 	}
 }
