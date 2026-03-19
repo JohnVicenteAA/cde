@@ -13,7 +13,6 @@ The following dependencies must be installed before using `cde`:
 | [Neovim](https://neovim.io/) | `ide` mode | https://neovim.io/ |
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `wtree` mode | https://docs.anthropic.com/en/docs/claude-code |
 | [lazygit](https://github.com/jesseduffield/lazygit) | `wtree` mode | https://github.com/jesseduffield/lazygit#installation |
-| [lazydocker](https://github.com/jesseduffield/lazydocker) | `wtree` mode | https://github.com/jesseduffield/lazydocker#installation |
 
 ## Install
 
@@ -34,7 +33,7 @@ If no name is given, the current directory name is used.
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--mode` | `-m` | `ide` | Session mode (`ide`, `wtree`) |
-| `--num` | `-n` | `2` | Number of `claude --worktree` panes in wtree mode |
+| `--num` | `-n` | `2` | Number of columns in wtree mode |
 
 ## Modes
 
@@ -58,19 +57,23 @@ cde myproject    # named session: myproject_ide
 
 ### wtree
 
-Opens a tmux session with N [Claude Code](https://claude.ai/claude-code) worktree panes, lazygit, and lazydocker. Requires a git repository.
+Opens a tmux session with N paired columns, each containing a [Claude Code](https://claude.ai/claude-code) worktree on top and a lazygit instance watching that same worktree on the bottom. Requires a git repository.
 
 ```
 +--------------------+--------------------+
-| claude --worktree  | claude --worktree  |
+|  claude --worktree |  claude --worktree |
+|    <name>-0        |    <name>-1        |
+|       (60%)        |       (60%)        |
 +--------------------+--------------------+
-|      lazygit       |    lazydocker      |
+|  lazygit -p        |  lazygit -p        |
+|  .claude/worktrees/|  .claude/worktrees/|
+|    <name>-0 (40%)  |    <name>-1 (40%)  |
 +--------------------+--------------------+
 ```
 
 ```sh
-cde -m wtree         # 2 claude panes (default)
-cde -m wtree -n 4    # 4 claude panes
+cde -m wtree         # 2 columns (default)
+cde -m wtree -n 3    # 3 columns
 ```
 
 ## Session naming
