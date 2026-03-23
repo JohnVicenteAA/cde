@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/huh"
@@ -29,6 +30,23 @@ var discoverGitRepos = func(dir string) ([]string, error) {
 	return repos, nil
 }
 
+// promptLabel asks the user for a short session label.
+var promptLabel = func() (string, error) {
+	var label string
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Session label").
+				Placeholder("e.g. bugfix, feature, sprint-3").
+				Value(&label),
+		),
+	)
+	if err := form.Run(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(label), nil
+}
+
 // selectRepos prompts the user to pick repos from the list.
 var selectRepos = func(repos []string) ([]string, error) {
 	options := make([]huh.Option[string], len(repos))
@@ -51,7 +69,7 @@ var selectRepos = func(repos []string) ([]string, error) {
 	return selected, nil
 }
 
-func runMrepo(sessionName, windowTitle string) error {
+func runMrepo() error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -75,13 +93,28 @@ func runMrepo(sessionName, windowTitle string) error {
 
 	n := len(selected)
 
+	label, err := promptLabel()
+	if err != nil {
+		return err
+	}
+	if label == "" {
+		return fmt.Errorf("session label is required")
+	}
+
+	// Sanitize label for use in tmux session name
+	label = strings.ReplaceAll(strings.ReplaceAll(label, ".", "_"), " ", "_")
+
+	sessionName := "mrepo_" + label + "_" + strings.Join(selected, "_")
+
 	reattach, err := handleExistingSession(sessionName)
 	if err != nil || reattach {
 		return err
 	}
 
+	title := label + " mrepo [" + strings.Join(selected, ", ") + "]"
+
 	runner.Run("new-session", "-d", "-s", sessionName)
-	runner.Run("rename-window", "-t", sessionName+":0", windowTitle)
+	runner.Run("rename-window", "-t", sessionName+":0", title)
 	runner.Run("set-window-option", "-t", sessionName+":0", "automatic-rename", "off")
 
 	col0Top, _ := runner.Run("display-message", "-t", sessionName+":0.0", "-p", "#{pane_id}")

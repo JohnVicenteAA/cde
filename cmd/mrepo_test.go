@@ -5,9 +5,16 @@ import (
 	"testing"
 )
 
+func stubLabel(label string) func() {
+	orig := promptLabel
+	promptLabel = func() (string, error) { return label, nil }
+	return func() { promptLabel = orig }
+}
+
 func TestRunMrepo(t *testing.T) {
+	sn := "mrepo_test_repo-a_repo-b"
 	mock := newMockTmux()
-	mock.outputs["display-message -t test_mrepo:0.0 -p #{pane_id}"] = "%0"
+	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
 	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%1"
 	mock.outputs["display-message -p #{window_width}"] = "200"
 	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%10"
@@ -26,25 +33,27 @@ func TestRunMrepo(t *testing.T) {
 	}
 	defer func() { selectRepos = origSelect }()
 
-	err := runMrepo("test_mrepo", "test: mrepo")
+	defer stubLabel("test")()
+
+	err := runMrepo()
 	if err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
 
-	if mock.attached != "test_mrepo" {
-		t.Errorf("expected attach to %q, got %q", "test_mrepo", mock.attached)
+	if mock.attached != sn {
+		t.Errorf("expected attach to %q, got %q", sn, mock.attached)
 	}
 
 	// Verify session created
-	if !mock.hasCall("new-session", "-d", "-s", "test_mrepo") {
+	if !mock.hasCall("new-session", "-d", "-s", sn) {
 		t.Error("expected new-session call")
 	}
 
-	// Verify window title and automatic-rename disabled
-	if !mock.hasCall("rename-window", "-t", "test_mrepo:0", "test: mrepo") {
-		t.Error("expected window to be renamed")
+	// Verify window title includes label and selected repos
+	if !mock.hasCall("rename-window", "-t", sn+":0", "test mrepo [repo-a, repo-b]") {
+		t.Error("expected window to be renamed with label and repo names")
 	}
-	if !mock.hasCall("set-window-option", "-t", "test_mrepo:0", "automatic-rename", "off") {
+	if !mock.hasCall("set-window-option", "-t", sn+":0", "automatic-rename", "off") {
 		t.Error("expected automatic-rename to be disabled")
 	}
 
@@ -63,8 +72,9 @@ func TestRunMrepo(t *testing.T) {
 }
 
 func TestRunMrepoSendKeys(t *testing.T) {
+	sn := "mrepo_test_repo-a_repo-b"
 	mock := newMockTmux()
-	mock.outputs["display-message -t test_mrepo:0.0 -p #{pane_id}"] = "%0"
+	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
 	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%1"
 	mock.outputs["display-message -p #{window_width}"] = "200"
 	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%10"
@@ -83,7 +93,9 @@ func TestRunMrepoSendKeys(t *testing.T) {
 	}
 	defer func() { selectRepos = origSelect }()
 
-	err := runMrepo("test_mrepo", "test: mrepo")
+	defer stubLabel("test")()
+
+	err := runMrepo()
 	if err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
@@ -93,26 +105,26 @@ func TestRunMrepoSendKeys(t *testing.T) {
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%0" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "cd") && contains(cmd, "claude --worktree test_mrepo-repo-a") {
+				if contains(cmd, "cd") && contains(cmd, "claude --worktree "+sn+"-repo-a") {
 					goto foundClaude0
 				}
 			}
 		}
 	}
-	t.Error("expected cd + claude --worktree test_mrepo-repo-a in column 0 top pane")
+	t.Error("expected cd + claude --worktree in column 0 top pane")
 foundClaude0:
 
 	for _, c := range mock.calls {
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%1" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "cd") && contains(cmd, "claude --worktree test_mrepo-repo-b") {
+				if contains(cmd, "cd") && contains(cmd, "claude --worktree "+sn+"-repo-b") {
 					goto foundClaude1
 				}
 			}
 		}
 	}
-	t.Error("expected cd + claude --worktree test_mrepo-repo-b in column 1 top pane")
+	t.Error("expected cd + claude --worktree in column 1 top pane")
 foundClaude1:
 
 	// Verify lazygit send-keys in bottom panes
@@ -120,7 +132,7 @@ foundClaude1:
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%10" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "lazygit -p .claude/worktrees/test_mrepo-repo-a") {
+				if contains(cmd, "lazygit -p .claude/worktrees/"+sn+"-repo-a") {
 					goto foundLg0
 				}
 			}
@@ -133,7 +145,7 @@ foundLg0:
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%11" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "lazygit -p .claude/worktrees/test_mrepo-repo-b") {
+				if contains(cmd, "lazygit -p .claude/worktrees/"+sn+"-repo-b") {
 					goto foundLg1
 				}
 			}
@@ -150,7 +162,7 @@ func TestRunMrepoNoReposFound(t *testing.T) {
 	}
 	defer func() { discoverGitRepos = origDiscover }()
 
-	err := runMrepo("test_mrepo", "test: mrepo")
+	err := runMrepo()
 	if err == nil {
 		t.Fatal("expected error when no repos found")
 	}
@@ -172,7 +184,7 @@ func TestRunMrepoNoneSelected(t *testing.T) {
 	}
 	defer func() { selectRepos = origSelect }()
 
-	err := runMrepo("test_mrepo", "test: mrepo")
+	err := runMrepo()
 	if err == nil {
 		t.Fatal("expected error when no repos selected")
 	}
@@ -181,9 +193,34 @@ func TestRunMrepoNoneSelected(t *testing.T) {
 	}
 }
 
+func TestRunMrepoEmptyLabel(t *testing.T) {
+	origDiscover := discoverGitRepos
+	discoverGitRepos = func(dir string) ([]string, error) {
+		return []string{"repo-a"}, nil
+	}
+	defer func() { discoverGitRepos = origDiscover }()
+
+	origSelect := selectRepos
+	selectRepos = func(repos []string) ([]string, error) {
+		return []string{"repo-a"}, nil
+	}
+	defer func() { selectRepos = origSelect }()
+
+	defer stubLabel("")()
+
+	err := runMrepo()
+	if err == nil {
+		t.Fatal("expected error when label is empty")
+	}
+	if err.Error() != "session label is required" {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
 func TestRunMrepoSingleRepo(t *testing.T) {
+	sn := "mrepo_test_solo-repo"
 	mock := newMockTmux()
-	mock.outputs["display-message -t test_mrepo:0.0 -p #{pane_id}"] = "%0"
+	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
 	mock.outputs["display-message -p #{window_width}"] = "200"
 	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%10"
 	runner = mock
@@ -200,7 +237,9 @@ func TestRunMrepoSingleRepo(t *testing.T) {
 	}
 	defer func() { selectRepos = origSelect }()
 
-	err := runMrepo("test_mrepo", "test: mrepo")
+	defer stubLabel("test")()
+
+	err := runMrepo()
 	if err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
@@ -226,8 +265,9 @@ func TestRunMrepoSingleRepo(t *testing.T) {
 }
 
 func TestRunMrepoThreeRepos(t *testing.T) {
+	sn := "mrepo_test_alpha_beta_gamma"
 	mock := newMockTmux()
-	mock.outputs["display-message -t sess:0.0 -p #{pane_id}"] = "%0"
+	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
 	mock.outputSeqs["split-window -h -t %0 -P -F #{pane_id}"] = []string{"%1", "%2"}
 	mock.outputs["display-message -p #{window_width}"] = "300"
 	for i := 0; i < 3; i++ {
@@ -245,7 +285,9 @@ func TestRunMrepoThreeRepos(t *testing.T) {
 	selectRepos = func(r []string) ([]string, error) { return repos, nil }
 	defer func() { selectRepos = origSelect }()
 
-	if err := runMrepo("sess", "title"); err != nil {
+	defer stubLabel("test")()
+
+	if err := runMrepo(); err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
 

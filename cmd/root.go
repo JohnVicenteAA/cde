@@ -59,7 +59,7 @@ func run(cmd *cobra.Command, args []string) error {
 	case "wtree":
 		return runWtree(sn, numAgents, windowTitle)
 	case "mrepo":
-		return runMrepo(sn, windowTitle)
+		return runMrepo()
 	default:
 		return fmt.Errorf("unknown mode: %s (available: ide, wtree, mrepo)", mode)
 	}
