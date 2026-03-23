@@ -12,6 +12,7 @@ type mockTmux struct {
 	outputSeqs map[string][]string // sequential outputs for repeated calls
 	seqIndex   map[string]int
 	attached   string
+	sessions   map[string]bool // sessions that exist for HasSession
 }
 
 func newMockTmux() *mockTmux {
@@ -19,6 +20,7 @@ func newMockTmux() *mockTmux {
 		outputs:    make(map[string]string),
 		outputSeqs: make(map[string][]string),
 		seqIndex:   make(map[string]int),
+		sessions:   make(map[string]bool),
 	}
 }
 
@@ -44,7 +46,7 @@ func (m *mockTmux) Attach(sessionName string) error {
 }
 
 func (m *mockTmux) HasSession(name string) bool {
-	return false
+	return m.sessions[name]
 }
 
 func (m *mockTmux) findCalls(command string) []call {

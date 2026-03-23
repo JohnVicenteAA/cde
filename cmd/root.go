@@ -16,8 +16,13 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "cde [name]",
-	Short: "Create tmux coding environments",
+	Use:   "cde",
+	Short: "Create and manage tmux coding environments",
+}
+
+var createCmd = &cobra.Command{
+	Use:   "create [name]",
+	Short: "Create a new tmux coding environment",
 	Args:  cobra.MaximumNArgs(1),
 	RunE:  run,
 }
@@ -29,8 +34,9 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&mode, "mode", "m", "ide", "session mode (ide, wtree, mrepo)")
-	rootCmd.Flags().IntVarP(&numAgents, "num", "n", 2, "number of claude --worktree panes in wtree mode")
+	createCmd.Flags().StringVarP(&mode, "mode", "m", "ide", "session mode (ide, wtree, mrepo)")
+	createCmd.Flags().IntVarP(&numAgents, "num", "n", 2, "number of claude --worktree panes in wtree mode")
+	rootCmd.AddCommand(createCmd)
 }
 
 func sessionName(name, mode string) string {
