@@ -1,4 +1,4 @@
-module github.com/jvnte/cde
+module github.com/JohnVicenteAA/cde
 
 go 1.23
 
