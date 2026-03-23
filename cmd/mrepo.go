@@ -57,9 +57,10 @@ var selectRepos = func(repos []string) ([]string, error) {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
-				Title("Select repos to open").
+				Title("Select repos to open (/ to filter)").
 				Options(options...).
 				Filterable(true).
+				Height(15).
 				Value(&selected),
 		),
 	)
