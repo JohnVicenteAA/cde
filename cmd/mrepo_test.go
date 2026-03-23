@@ -108,31 +108,33 @@ func TestRunMrepoSendKeys(t *testing.T) {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
 
-	// Verify send-keys contain cd + claude for top panes
+	// Verify send-keys contain cd + claude + --add-dir for top panes
 	for _, c := range mock.calls {
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%0" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "cd") && contains(cmd, "claude --worktree test-repo-a") {
+				if contains(cmd, "claude --worktree test-repo-a") &&
+					contains(cmd, "--add-dir") && contains(cmd, "repo-b/.claude/worktrees/test-repo-b") {
 					goto foundClaude0
 				}
 			}
 		}
 	}
-	t.Error("expected cd + claude --worktree in column 0 top pane")
+	t.Error("expected cd + claude --worktree + --add-dir for repo-b worktree in column 0")
 foundClaude0:
 
 	for _, c := range mock.calls {
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%1" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "cd") && contains(cmd, "claude --worktree test-repo-b") {
+				if contains(cmd, "claude --worktree test-repo-b") &&
+					contains(cmd, "--add-dir") && contains(cmd, "repo-a/.claude/worktrees/test-repo-a") {
 					goto foundClaude1
 				}
 			}
 		}
 	}
-	t.Error("expected cd + claude --worktree in column 1 top pane")
+	t.Error("expected cd + claude --worktree + --add-dir for repo-a worktree in column 1")
 foundClaude1:
 
 	// Verify lazygit send-keys in bottom panes
@@ -278,6 +280,15 @@ func TestRunMrepoSingleRepo(t *testing.T) {
 		}
 	}
 
+	// Single repo should NOT have --add-dir
+	for _, c := range mock.calls {
+		if len(c.args) >= 4 && c.args[0] == "send-keys" && contains(c.args[3], "claude") {
+			if contains(c.args[3], "--add-dir") {
+				t.Error("single repo should not have --add-dir flags")
+			}
+		}
+	}
+
 	// Should still have 1 vertical split
 	verticalSplits := 0
 	for _, c := range splits {
@@ -342,6 +353,82 @@ func TestRunMrepoThreeRepos(t *testing.T) {
 	// Verify column widths at 100 each
 	if !mock.hasCall("resize-pane", "-t", "%0", "-x", "100") {
 		t.Error("expected column 0 resized to 100")
+	}
+}
+
+func TestRunMrepoAddDirThreeRepos(t *testing.T) {
+	defer stubNotGitRepo()()
+	sn := "mrepo_test_alpha_beta_gamma"
+	mock := newMockTmux()
+	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
+	mock.outputSeqs["split-window -h -t %0 -P -F #{pane_id}"] = []string{"%1", "%2"}
+	mock.outputs["display-message -p #{window_width}"] = "300"
+	for i := 0; i < 3; i++ {
+		mock.outputs[fmt.Sprintf("split-window -v -p 40 -t %%%d -P -F #{pane_id}", i)] = fmt.Sprintf("%%%d", 10+i)
+	}
+	runner = mock
+
+	repos := []string{"alpha", "beta", "gamma"}
+
+	origDiscover := discoverGitRepos
+	discoverGitRepos = func(dir string) ([]string, error) { return repos, nil }
+	defer func() { discoverGitRepos = origDiscover }()
+
+	origSelect := selectRepos
+	selectRepos = func(r []string) ([]string, error) { return repos, nil }
+	defer func() { selectRepos = origSelect }()
+
+	defer stubLabel("test")()
+
+	if err := runMrepo(); err != nil {
+		t.Fatalf("runMrepo returned error: %v", err)
+	}
+
+	// Collect claude send-keys per pane
+	claudeCmds := map[string]string{}
+	for _, c := range mock.calls {
+		if len(c.args) >= 4 && c.args[0] == "send-keys" && contains(c.args[3], "claude") {
+			claudeCmds[c.args[2]] = c.args[3]
+		}
+	}
+
+	// alpha (%0) should have --add-dir for beta and gamma worktrees
+	if cmd, ok := claudeCmds["%0"]; !ok {
+		t.Error("no claude send-keys for %0")
+	} else {
+		if !contains(cmd, "beta/.claude/worktrees/test-beta") {
+			t.Error("alpha column missing --add-dir for beta worktree")
+		}
+		if !contains(cmd, "gamma/.claude/worktrees/test-gamma") {
+			t.Error("alpha column missing --add-dir for gamma worktree")
+		}
+		if contains(cmd, "alpha/.claude/worktrees/test-alpha") {
+			t.Error("alpha column should not --add-dir itself")
+		}
+	}
+
+	// beta (%1) should have --add-dir for alpha and gamma worktrees
+	if cmd, ok := claudeCmds["%1"]; !ok {
+		t.Error("no claude send-keys for %1")
+	} else {
+		if !contains(cmd, "alpha/.claude/worktrees/test-alpha") {
+			t.Error("beta column missing --add-dir for alpha worktree")
+		}
+		if !contains(cmd, "gamma/.claude/worktrees/test-gamma") {
+			t.Error("beta column missing --add-dir for gamma worktree")
+		}
+	}
+
+	// gamma (%2) should have --add-dir for alpha and beta worktrees
+	if cmd, ok := claudeCmds["%2"]; !ok {
+		t.Error("no claude send-keys for %2")
+	} else {
+		if !contains(cmd, "alpha/.claude/worktrees/test-alpha") {
+			t.Error("gamma column missing --add-dir for alpha worktree")
+		}
+		if !contains(cmd, "beta/.claude/worktrees/test-beta") {
+			t.Error("gamma column missing --add-dir for beta worktree")
+		}
 	}
 }
 

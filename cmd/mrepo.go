@@ -151,9 +151,18 @@ func runMrepo() error {
 		worktreeName := fmt.Sprintf("%s-%s", label, repoName)
 		worktreePath := fmt.Sprintf(".claude/worktrees/%s", worktreeName)
 
-		// cd into repo, then launch claude with worktree
+		// Build --add-dir flags pointing to sibling worktree paths
+		var addDirs string
+		for j, other := range selected {
+			if j != i {
+				otherWorktree := filepath.Join(cwd, other, ".claude", "worktrees", fmt.Sprintf("%s-%s", label, other))
+				addDirs += fmt.Sprintf(" --add-dir %s", otherWorktree)
+			}
+		}
+
+		// cd into repo, then launch claude with worktree and cross-repo context
 		runner.Run("send-keys", "-t", topPane,
-			fmt.Sprintf("cd %s && clear && claude --worktree %s", repoPath, worktreeName), "Enter")
+			fmt.Sprintf("cd %s && clear && claude --worktree %s%s", repoPath, worktreeName, addDirs), "Enter")
 
 		// Split vertically for lazygit
 		bottomPane, _ := runner.Run("split-window", "-v", "-p", "40", "-t", topPane, "-P", "-F", "#{pane_id}")
