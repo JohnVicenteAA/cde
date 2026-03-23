@@ -29,7 +29,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&mode, "mode", "m", "ide", "session mode (ide, wtree)")
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "ide", "session mode (ide, wtree, mrepo)")
 	rootCmd.Flags().IntVarP(&numAgents, "num", "n", 2, "number of claude --worktree panes in wtree mode")
 }
 
@@ -58,8 +58,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return runIDE(sn, windowTitle)
 	case "wtree":
 		return runWtree(sn, numAgents, windowTitle)
+	case "mrepo":
+		return runMrepo(sn, windowTitle)
 	default:
-		return fmt.Errorf("unknown mode: %s (available: ide, wtree)", mode)
+		return fmt.Errorf("unknown mode: %s (available: ide, wtree, mrepo)", mode)
 	}
 }
 
