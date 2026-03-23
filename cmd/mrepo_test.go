@@ -5,6 +5,12 @@ import (
 	"testing"
 )
 
+func stubNotGitRepo() func() {
+	orig := isGitRepo
+	isGitRepo = func() bool { return false }
+	return func() { isGitRepo = orig }
+}
+
 func stubLabel(label string) func() {
 	orig := promptLabel
 	promptLabel = func() (string, error) { return label, nil }
@@ -12,6 +18,7 @@ func stubLabel(label string) func() {
 }
 
 func TestRunMrepo(t *testing.T) {
+	defer stubNotGitRepo()()
 	sn := "mrepo_test_repo-a_repo-b"
 	mock := newMockTmux()
 	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
@@ -72,6 +79,7 @@ func TestRunMrepo(t *testing.T) {
 }
 
 func TestRunMrepoSendKeys(t *testing.T) {
+	defer stubNotGitRepo()()
 	sn := "mrepo_test_repo-a_repo-b"
 	mock := newMockTmux()
 	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
@@ -155,7 +163,22 @@ foundLg0:
 foundLg1:
 }
 
+func TestRunMrepoRejectsGitRepo(t *testing.T) {
+	origIsGitRepo := isGitRepo
+	isGitRepo = func() bool { return true }
+	defer func() { isGitRepo = origIsGitRepo }()
+
+	err := runMrepo()
+	if err == nil {
+		t.Fatal("expected error when run from inside a git repo")
+	}
+	if !contains(err.Error(), "not from inside a git repo") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
 func TestRunMrepoNoReposFound(t *testing.T) {
+	defer stubNotGitRepo()()
 	origDiscover := discoverGitRepos
 	discoverGitRepos = func(dir string) ([]string, error) {
 		return nil, nil
@@ -172,6 +195,7 @@ func TestRunMrepoNoReposFound(t *testing.T) {
 }
 
 func TestRunMrepoNoneSelected(t *testing.T) {
+	defer stubNotGitRepo()()
 	origDiscover := discoverGitRepos
 	discoverGitRepos = func(dir string) ([]string, error) {
 		return []string{"repo-a"}, nil
@@ -194,6 +218,7 @@ func TestRunMrepoNoneSelected(t *testing.T) {
 }
 
 func TestRunMrepoEmptyLabel(t *testing.T) {
+	defer stubNotGitRepo()()
 	origDiscover := discoverGitRepos
 	discoverGitRepos = func(dir string) ([]string, error) {
 		return []string{"repo-a"}, nil
@@ -218,6 +243,7 @@ func TestRunMrepoEmptyLabel(t *testing.T) {
 }
 
 func TestRunMrepoSingleRepo(t *testing.T) {
+	defer stubNotGitRepo()()
 	sn := "mrepo_test_solo-repo"
 	mock := newMockTmux()
 	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"
@@ -265,6 +291,7 @@ func TestRunMrepoSingleRepo(t *testing.T) {
 }
 
 func TestRunMrepoThreeRepos(t *testing.T) {
+	defer stubNotGitRepo()()
 	sn := "mrepo_test_alpha_beta_gamma"
 	mock := newMockTmux()
 	mock.outputs[fmt.Sprintf("display-message -t %s:0.0 -p #{pane_id}", sn)] = "%0"

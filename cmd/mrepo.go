@@ -71,6 +71,10 @@ var selectRepos = func(repos []string) ([]string, error) {
 }
 
 func runMrepo() error {
+	if isGitRepo() {
+		return fmt.Errorf("mrepo mode should be run from a parent directory containing repos, not from inside a git repo (use wtree mode instead)")
+	}
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
