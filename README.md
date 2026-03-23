@@ -1,6 +1,6 @@
 # cde
 
-A CLI tool that creates preconfigured tmux coding environments.
+A CLI tool that creates and manages preconfigured tmux coding environments.
 
 ## Requirements
 
@@ -11,8 +11,8 @@ The following dependencies must be installed before using `cde`:
 | [Go](https://go.dev/) | Building/installing `cde` | https://go.dev/dl/ |
 | [tmux](https://github.com/tmux/tmux) | All modes | https://github.com/tmux/tmux/wiki/Installing |
 | [Neovim](https://neovim.io/) | `ide` mode | https://neovim.io/ |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `wtree` mode | https://docs.anthropic.com/en/docs/claude-code |
-| [lazygit](https://github.com/jesseduffield/lazygit) | `wtree` mode | https://github.com/jesseduffield/lazygit#installation |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `wtree`, `mrepo` modes | https://docs.anthropic.com/en/docs/claude-code |
+| [lazygit](https://github.com/jesseduffield/lazygit) | `wtree`, `mrepo` modes | https://github.com/jesseduffield/lazygit#installation |
 
 ## Install
 
@@ -20,20 +20,40 @@ The following dependencies must be installed before using `cde`:
 go install github.com/JohnVicenteAA/cde@latest
 ```
 
-## Usage
+## Commands
+
+### `cde create`
+
+Create a new tmux coding environment.
 
 ```sh
-cde [name] [flags]
+cde create [name] [flags]
 ```
 
 If no name is given, the current directory name is used.
 
-### Flags
-
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--mode` | `-m` | `ide` | Session mode (`ide`, `wtree`) |
+| `--mode` | `-m` | `ide` | Session mode (`ide`, `wtree`, `mrepo`) |
 | `--num` | `-n` | `2` | Number of columns in wtree mode |
+
+### `cde attach`
+
+Attach to an existing cde tmux session.
+
+```sh
+cde attach --name <session_name>
+```
+
+### `cde session`
+
+List and manage cde sessions.
+
+```sh
+cde session --list              # list all cde sessions
+cde session delete --name <n>   # delete a specific session
+cde session delete --all        # delete all cde sessions
+```
 
 ## Modes
 
@@ -51,8 +71,8 @@ Default mode. Opens a tmux session with nvim and two shell panes.
 ```
 
 ```sh
-cde              # uses current dir name
-cde myproject    # named session: myproject_ide
+cde create              # uses current dir name
+cde create myproject    # named session: myproject_ide
 ```
 
 ### wtree
@@ -72,17 +92,40 @@ Opens a tmux session with N paired columns, each containing a [Claude Code](http
 ```
 
 ```sh
-cde -m wtree         # 2 columns (default)
-cde -m wtree -n 3    # 3 columns
+cde create -m wtree         # 2 columns (default)
+cde create -m wtree -n 3    # 3 columns
+```
+
+### mrepo
+
+Multi-repo mode. Run from a parent directory that contains multiple git repos. Prompts you to select which repos to open, then creates a tmux session with one paired Claude Code + lazygit column per repo. Must be run from **outside** a git repo.
+
+```
++--------------------+--------------------+
+|  claude --worktree |  claude --worktree |
+|    label-repo1     |    label-repo2     |
+|       (60%)        |       (60%)        |
++--------------------+--------------------+
+|  lazygit -p        |  lazygit -p        |
+|  repo1/.claude/    |  repo2/.claude/    |
+|  worktrees/        |  worktrees/        |
+|    label-repo1     |    label-repo2     |
+|       (40%)        |       (40%)        |
++--------------------+--------------------+
+```
+
+```sh
+cde create -m mrepo    # prompts for repo selection and session label
 ```
 
 ## Session naming
 
-Sessions are named `{name}_{mode}`, with dots replaced by underscores. This allows running both modes side by side:
+Sessions are named `{name}_{mode}`, with dots replaced by underscores. This allows running multiple modes side by side:
 
 ```sh
-cde -m ide      # session: dirname_ide
-cde -m wtree    # session: dirname_wtree
+cde create -m ide      # session: dirname_ide
+cde create -m wtree    # session: dirname_wtree
+cde create -m mrepo    # session: mrepo_label_repo1_repo2
 ```
 
 If a session already exists, you'll be prompted to reattach or replace it.
