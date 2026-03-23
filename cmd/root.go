@@ -95,3 +95,12 @@ var isGitRepo = func() bool {
 	_, err := exec.Command("git", "rev-parse", "--is-inside-work-tree").Output()
 	return err == nil
 }
+
+// gitFetch runs "git fetch origin" in the given directory to ensure
+// worktrees branch off the latest remote state.
+var gitFetch = func(dir string) error {
+	cmd := exec.Command("git", "-C", dir, "fetch", "origin")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}

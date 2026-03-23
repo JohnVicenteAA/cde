@@ -109,6 +109,14 @@ func runMrepo() error {
 	// Sanitize label for use in tmux session name
 	label = strings.ReplaceAll(strings.ReplaceAll(label, ".", "_"), " ", "_")
 
+	// Fetch latest from origin for each selected repo
+	for _, repoName := range selected {
+		repoPath := filepath.Join(cwd, repoName)
+		if err := gitFetch(repoPath); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: git fetch origin failed for %s: %v\n", repoName, err)
+		}
+	}
+
 	sessionName := "mrepo_" + label + "_" + strings.Join(selected, "_")
 
 	reattach, err := handleExistingSession(sessionName)
