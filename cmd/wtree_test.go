@@ -7,6 +7,7 @@ import (
 
 func init() {
 	worktreeDelay = 0
+	gitFetch = func(dir string) error { return nil }
 }
 
 func TestRunWtree(t *testing.T) {

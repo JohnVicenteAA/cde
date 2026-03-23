@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 )
@@ -13,6 +14,10 @@ var worktreeDelay = 1 * time.Second
 func runWtree(sessionName string, n int, windowTitle string) error {
 	if !isGitRepo() {
 		return fmt.Errorf("wtree mode requires a git repository")
+	}
+
+	if err := gitFetch("."); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: git fetch origin failed: %v\n", err)
 	}
 
 	reattach, err := handleExistingSession(sessionName)
