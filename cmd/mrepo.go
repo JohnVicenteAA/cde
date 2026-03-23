@@ -144,7 +144,7 @@ func runMrepo() error {
 
 		repoName := selected[i]
 		repoPath := filepath.Join(cwd, repoName)
-		worktreeName := fmt.Sprintf("%s-%s", sessionName, repoName)
+		worktreeName := fmt.Sprintf("%s-%s", label, repoName)
 		worktreePath := fmt.Sprintf(".claude/worktrees/%s", worktreeName)
 
 		// cd into repo, then launch claude with worktree

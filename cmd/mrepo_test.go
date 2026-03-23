@@ -105,7 +105,7 @@ func TestRunMrepoSendKeys(t *testing.T) {
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%0" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "cd") && contains(cmd, "claude --worktree "+sn+"-repo-a") {
+				if contains(cmd, "cd") && contains(cmd, "claude --worktree test-repo-a") {
 					goto foundClaude0
 				}
 			}
@@ -118,7 +118,7 @@ foundClaude0:
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%1" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "cd") && contains(cmd, "claude --worktree "+sn+"-repo-b") {
+				if contains(cmd, "cd") && contains(cmd, "claude --worktree test-repo-b") {
 					goto foundClaude1
 				}
 			}
@@ -132,7 +132,7 @@ foundClaude1:
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%10" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "lazygit -p .claude/worktrees/"+sn+"-repo-a") {
+				if contains(cmd, "lazygit -p .claude/worktrees/test-repo-a") {
 					goto foundLg0
 				}
 			}
@@ -145,7 +145,7 @@ foundLg0:
 		if len(c.args) >= 3 && c.args[0] == "send-keys" && c.args[1] == "-t" && c.args[2] == "%11" {
 			if len(c.args) >= 4 {
 				cmd := c.args[3]
-				if contains(cmd, "lazygit -p .claude/worktrees/"+sn+"-repo-b") {
+				if contains(cmd, "lazygit -p .claude/worktrees/test-repo-b") {
 					goto foundLg1
 				}
 			}
