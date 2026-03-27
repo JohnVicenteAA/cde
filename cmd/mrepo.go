@@ -69,9 +69,15 @@ var selectRepos = func(repos []string) ([]string, error) {
 	return selected, nil
 }
 
-func runMrepo() error {
+func runMrepo(flagLabel string, flagRepos []string) error {
 	if isGitRepo() {
 		return fmt.Errorf("mrepo mode should be run from a parent directory containing repos, not from inside a git repo (use wtree mode instead)")
+	}
+
+	hasLabel := flagLabel != ""
+	hasRepos := len(flagRepos) > 0
+	if hasLabel != hasRepos {
+		return fmt.Errorf("--label and --repo must both be provided for non-interactive mrepo")
 	}
 
 	cwd, err := os.Getwd()
@@ -79,25 +85,41 @@ func runMrepo() error {
 		return err
 	}
 
-	repos, err := discoverGitRepos(cwd)
-	if err != nil {
-		return fmt.Errorf("scanning for repos: %w", err)
-	}
-	if len(repos) == 0 {
-		return fmt.Errorf("no git repositories found in %s", cwd)
+	var selected []string
+	if hasRepos {
+		for _, r := range flagRepos {
+			gitPath := filepath.Join(cwd, r, ".git")
+			if _, err := os.Stat(gitPath); err != nil {
+				return fmt.Errorf("repo %q is not a git repository in %s", r, cwd)
+			}
+		}
+		selected = flagRepos
+	} else {
+		repos, err := discoverGitRepos(cwd)
+		if err != nil {
+			return fmt.Errorf("scanning for repos: %w", err)
+		}
+		if len(repos) == 0 {
+			return fmt.Errorf("no git repositories found in %s", cwd)
+		}
+
+		selected, err = selectRepos(repos)
+		if err != nil {
+			return err
+		}
+		if len(selected) == 0 {
+			return fmt.Errorf("no repos selected")
+		}
 	}
 
-	selected, err := selectRepos(repos)
-	if err != nil {
-		return err
-	}
-	if len(selected) == 0 {
-		return fmt.Errorf("no repos selected")
-	}
-
-	label, err := promptLabel()
-	if err != nil {
-		return err
+	var label string
+	if hasLabel {
+		label = strings.TrimSpace(flagLabel)
+	} else {
+		label, err = promptLabel()
+		if err != nil {
+			return err
+		}
 	}
 	if label == "" {
 		return fmt.Errorf("session label is required")

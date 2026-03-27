@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	mode      string
-	numAgents int
+	mode       string
+	numAgents  int
+	mrepoLabel string
+	mrepoRepos []string
 )
 
 var rootCmd = &cobra.Command{
@@ -36,6 +38,8 @@ func Execute() {
 func init() {
 	createCmd.Flags().StringVarP(&mode, "mode", "m", "ide", "session mode (ide, wtree, mrepo)")
 	createCmd.Flags().IntVarP(&numAgents, "num", "n", 2, "number of claude --worktree panes in wtree mode")
+	createCmd.Flags().StringVarP(&mrepoLabel, "label", "l", "", "session label for mrepo mode (non-interactive)")
+	createCmd.Flags().StringArrayVarP(&mrepoRepos, "repo", "r", nil, "repo to include in mrepo mode (repeatable, non-interactive)")
 	rootCmd.AddCommand(createCmd)
 }
 
@@ -65,7 +69,7 @@ func run(cmd *cobra.Command, args []string) error {
 	case "wtree":
 		return runWtree(sn, numAgents, windowTitle)
 	case "mrepo":
-		return runMrepo()
+		return runMrepo(mrepoLabel, mrepoRepos)
 	default:
 		return fmt.Errorf("unknown mode: %s (available: ide, wtree, mrepo)", mode)
 	}
