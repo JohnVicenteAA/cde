@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/huh"
 )
@@ -96,8 +95,6 @@ func runMrepo() error {
 		return fmt.Errorf("no repos selected")
 	}
 
-	n := len(selected)
-
 	label, err := promptLabel()
 	if err != nil {
 		return err
@@ -106,7 +103,7 @@ func runMrepo() error {
 		return fmt.Errorf("session label is required")
 	}
 
-	// Sanitize label for use in tmux session name
+	// Sanitize label for use in tmux session name and branch names
 	label = strings.ReplaceAll(strings.ReplaceAll(label, ".", "_"), " ", "_")
 
 	// Fetch latest from origin for each selected repo
@@ -125,63 +122,56 @@ func runMrepo() error {
 	}
 
 	title := label + " mrepo [" + strings.Join(selected, ", ") + "]"
+	n := len(selected)
 
 	runner.Run("new-session", "-d", "-s", sessionName)
 	runner.Run("rename-window", "-t", sessionName+":0", title)
 	runner.Run("set-window-option", "-t", sessionName+":0", "automatic-rename", "off")
 
-	col0Top, _ := runner.Run("display-message", "-t", sessionName+":0.0", "-p", "#{pane_id}")
+	// Top pane is the single claude session
+	topPane, _ := runner.Run("display-message", "-t", sessionName+":0.0", "-p", "#{pane_id}")
 
-	topPanes := []string{col0Top}
+	// Create bottom row (40% height)
+	bottomPane, _ := runner.Run("split-window", "-v", "-p", "40", "-t", topPane, "-P", "-F", "#{pane_id}")
+
+	// Split bottom row into N panes (one per repo)
+	bottomPanes := []string{bottomPane}
 	for i := 1; i < n; i++ {
-		pane, _ := runner.Run("split-window", "-h", "-t", col0Top, "-P", "-F", "#{pane_id}")
-		topPanes = append(topPanes, pane)
+		pane, _ := runner.Run("split-window", "-h", "-t", bottomPane, "-P", "-F", "#{pane_id}")
+		bottomPanes = append(bottomPanes, pane)
 	}
 
-	// Even out column widths
+	// Even out bottom pane widths
 	windowWidth, _ := runner.Run("display-message", "-p", "#{window_width}")
 	w, _ := strconv.Atoi(windowWidth)
 	if w > 0 && n > 0 {
 		paneWidth := w / n
-		for _, pane := range topPanes {
+		for _, pane := range bottomPanes {
 			runner.Run("resize-pane", "-t", pane, "-x", strconv.Itoa(paneWidth))
 		}
 	}
 
-	// Split each column and launch claude + lazygit per repo
-	for i, topPane := range topPanes {
-		if i > 0 {
-			time.Sleep(worktreeDelay)
-		}
+	// Launch claude in top pane with --add-dir for each repo
+	var addDirs string
+	for _, repoName := range selected {
+		repoPath := filepath.Join(cwd, repoName)
+		addDirs += fmt.Sprintf(" --add-dir %s", repoPath)
+	}
+	runner.Run("send-keys", "-t", topPane,
+		fmt.Sprintf("cd %s && clear && claude%s", cwd, addDirs), "Enter")
 
+	// Launch lazygit in each bottom pane via a worktree on a new branch
+	for i, pane := range bottomPanes {
 		repoName := selected[i]
 		repoPath := filepath.Join(cwd, repoName)
-		worktreeName := fmt.Sprintf("%s-%s", label, repoName)
-		worktreePath := fmt.Sprintf(".claude/worktrees/%s", worktreeName)
-
-		// Build --add-dir flags pointing to sibling worktree paths
-		var addDirs string
-		for j, other := range selected {
-			if j != i {
-				otherWorktree := filepath.Join(cwd, other, ".claude", "worktrees", fmt.Sprintf("%s-%s", label, other))
-				addDirs += fmt.Sprintf(" --add-dir %s", otherWorktree)
-			}
-		}
-
-		// cd into repo, then launch claude with worktree and cross-repo context
-		runner.Run("send-keys", "-t", topPane,
-			fmt.Sprintf("cd %s && clear && claude --worktree %s%s", repoPath, worktreeName, addDirs), "Enter")
-
-		// Split vertically for lazygit
-		bottomPane, _ := runner.Run("split-window", "-v", "-p", "40", "-t", topPane, "-P", "-F", "#{pane_id}")
-
-		// cd into repo, wait for worktree, launch lazygit
-		runner.Run("send-keys", "-t", bottomPane,
-			fmt.Sprintf("cd %s && while [ ! -e %s/.git ]; do sleep 0.3; done; lazygit -p %s",
-				repoPath, worktreePath, worktreePath), "Enter")
+		branchName := fmt.Sprintf("%s/%s", label, repoName)
+		worktreePath := filepath.Join(repoPath, ".claude", "worktrees", fmt.Sprintf("%s-%s", label, repoName))
+		runner.Run("send-keys", "-t", pane,
+			fmt.Sprintf("cd %s && git worktree add -b %s %s origin/main && lazygit -p %s",
+				repoPath, branchName, worktreePath, worktreePath), "Enter")
 	}
 
-	runner.Run("select-pane", "-t", col0Top)
+	runner.Run("select-pane", "-t", topPane)
 
 	return runner.Attach(sessionName)
 }
