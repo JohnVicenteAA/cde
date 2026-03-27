@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -59,7 +60,7 @@ func TestRunMrepo(t *testing.T) {
 	selectRepos = func(r []string) ([]string, error) { return repos, nil }
 	defer func() { selectRepos = origSelect }()
 
-	if err := runMrepo(); err != nil {
+	if err := runMrepo("", nil); err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
 
@@ -127,7 +128,7 @@ func TestRunMrepoSendKeys(t *testing.T) {
 	selectRepos = func(r []string) ([]string, error) { return repos, nil }
 	defer func() { selectRepos = origSelect }()
 
-	if err := runMrepo(); err != nil {
+	if err := runMrepo("", nil); err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
 
@@ -179,7 +180,7 @@ func TestRunMrepoRejectsGitRepo(t *testing.T) {
 	isGitRepo = func() bool { return true }
 	defer func() { isGitRepo = origIsGitRepo }()
 
-	err := runMrepo()
+	err := runMrepo("", nil)
 	if err == nil {
 		t.Fatal("expected error when run from inside a git repo")
 	}
@@ -194,7 +195,7 @@ func TestRunMrepoNoReposFound(t *testing.T) {
 	discoverGitRepos = func(dir string) ([]string, error) { return nil, nil }
 	defer func() { discoverGitRepos = origDiscover }()
 
-	err := runMrepo()
+	err := runMrepo("", nil)
 	if err == nil {
 		t.Fatal("expected error when no repos found")
 	}
@@ -213,7 +214,7 @@ func TestRunMrepoNoneSelected(t *testing.T) {
 	selectRepos = func(repos []string) ([]string, error) { return nil, nil }
 	defer func() { selectRepos = origSelect }()
 
-	err := runMrepo()
+	err := runMrepo("", nil)
 	if err == nil {
 		t.Fatal("expected error when no repos selected")
 	}
@@ -234,7 +235,7 @@ func TestRunMrepoEmptyLabel(t *testing.T) {
 
 	defer stubLabel("")()
 
-	err := runMrepo()
+	err := runMrepo("", nil)
 	if err == nil {
 		t.Fatal("expected error when label is empty")
 	}
@@ -260,7 +261,7 @@ func TestRunMrepoSingleRepo(t *testing.T) {
 	selectRepos = func(r []string) ([]string, error) { return repos, nil }
 	defer func() { selectRepos = origSelect }()
 
-	if err := runMrepo(); err != nil {
+	if err := runMrepo("", nil); err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
 
@@ -299,7 +300,7 @@ func TestRunMrepoThreeRepos(t *testing.T) {
 	selectRepos = func(r []string) ([]string, error) { return repos, nil }
 	defer func() { selectRepos = origSelect }()
 
-	if err := runMrepo(); err != nil {
+	if err := runMrepo("", nil); err != nil {
 		t.Fatalf("runMrepo returned error: %v", err)
 	}
 
@@ -332,6 +333,80 @@ func TestRunMrepoThreeRepos(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestRunMrepoNonInteractive(t *testing.T) {
+	defer stubNotGitRepo()()
+	defer stubGitFetch()()
+
+	repos := []string{"repo-a", "repo-b"}
+	sn := "mrepo_bugfix_repo-a_repo-b"
+	mock := setupMrepoMock(sn, repos)
+
+	// Create temp dirs that look like git repos
+	dir := t.TempDir()
+	for _, r := range repos {
+		repoPath := fmt.Sprintf("%s/%s/.git", dir, r)
+		if err := os.MkdirAll(repoPath, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	err := runMrepo("bugfix", []string{"repo-a", "repo-b"})
+	if err != nil {
+		t.Fatalf("runMrepo returned error: %v", err)
+	}
+
+	if mock.attached != sn {
+		t.Errorf("expected attach to %q, got %q", sn, mock.attached)
+	}
+	if !mock.hasCall("new-session", "-d", "-s", sn) {
+		t.Error("expected new-session call")
+	}
+	if !mock.hasCall("rename-window", "-t", sn+":0", "bugfix mrepo [repo-a, repo-b]") {
+		t.Error("expected window renamed with label and repos")
+	}
+}
+
+func TestRunMrepoLabelWithoutRepos(t *testing.T) {
+	defer stubNotGitRepo()()
+	err := runMrepo("bugfix", nil)
+	if err == nil {
+		t.Fatal("expected error when --label provided without --repo")
+	}
+	if !contains(err.Error(), "--label and --repo must both be provided") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRunMrepoReposWithoutLabel(t *testing.T) {
+	defer stubNotGitRepo()()
+	err := runMrepo("", []string{"repo-a"})
+	if err == nil {
+		t.Fatal("expected error when --repo provided without --label")
+	}
+	if !contains(err.Error(), "--label and --repo must both be provided") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRunMrepoNonInteractiveInvalidRepo(t *testing.T) {
+	defer stubNotGitRepo()()
+	dir := t.TempDir()
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	err := runMrepo("bugfix", []string{"nonexistent"})
+	if err == nil {
+		t.Fatal("expected error for nonexistent repo")
+	}
+	if !contains(err.Error(), "not a git repository") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
 
