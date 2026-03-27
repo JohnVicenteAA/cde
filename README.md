@@ -36,6 +36,8 @@ If no name is given, the current directory name is used.
 |------|-------|---------|-------------|
 | `--mode` | `-m` | `ide` | Session mode (`ide`, `wtree`, `mrepo`) |
 | `--num` | `-n` | `2` | Number of columns in wtree mode |
+| `--label` | `-l` | | Session label for mrepo mode (non-interactive) |
+| `--repo` | `-r` | | Repo to include in mrepo mode (repeatable, non-interactive) |
 
 ### `cde attach`
 
@@ -98,24 +100,24 @@ cde create -m wtree -n 3    # 3 columns
 
 ### mrepo
 
-Multi-repo mode. Run from a parent directory that contains multiple git repos. Prompts you to select which repos to open, then creates a tmux session with one paired Claude Code + lazygit column per repo. Must be run from **outside** a git repo.
+Multi-repo mode. Run from a parent directory that contains multiple git repos. Creates a tmux session with a single Claude Code instance on top (with `--add-dir` for each repo) and one lazygit worktree pane per repo on the bottom. Must be run from **outside** a git repo.
 
 ```
-+--------------------+--------------------+
-|  claude --worktree |  claude --worktree |
-|    label-repo1     |    label-repo2     |
-|       (60%)        |       (60%)        |
-+--------------------+--------------------+
-|  lazygit -p        |  lazygit -p        |
-|  repo1/.claude/    |  repo2/.claude/    |
-|  worktrees/        |  worktrees/        |
-|    label-repo1     |    label-repo2     |
-|       (40%)        |       (40%)        |
-+--------------------+--------------------+
++-------------------------------------------+
+|  claude --add-dir repo1 --add-dir repo2   |
+|                 (60%)                      |
++--------------------+----------------------+
+|  lazygit -p        |  lazygit -p          |
+|  repo1/.claude/    |  repo2/.claude/      |
+|  worktrees/        |  worktrees/          |
+|    label-repo1     |    label-repo2       |
+|       (40%)        |       (40%)          |
++--------------------+----------------------+
 ```
 
 ```sh
-cde create -m mrepo    # prompts for repo selection and session label
+cde create -m mrepo                                  # interactive: prompts for repo selection and label
+cde create -m mrepo -l bugfix -r repo-a -r repo-b   # non-interactive: specify label and repos directly
 ```
 
 ## Session naming
