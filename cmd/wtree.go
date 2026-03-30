@@ -25,6 +25,8 @@ func runWtree(sessionName string, n int, windowTitle string) error {
 		return err
 	}
 
+	cleanupWorktrees(sessionName, n)
+
 	runner.Run("new-session", "-d", "-s", sessionName)
 	runner.Run("rename-window", "-t", sessionName+":0", windowTitle)
 	runner.Run("set-window-option", "-t", sessionName+":0", "automatic-rename", "off")

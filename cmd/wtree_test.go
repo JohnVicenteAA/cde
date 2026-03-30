@@ -8,6 +8,7 @@ import (
 func init() {
 	worktreeDelay = 0
 	gitFetch = func(dir string) error { return nil }
+	cleanupWorktrees = func(sessionName string, n int) {}
 }
 
 func TestRunWtree(t *testing.T) {
@@ -124,6 +125,41 @@ func TestRunWtreeColumnPairing(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRunWtreeCallsCleanup(t *testing.T) {
+	mock := newMockTmux()
+	mock.outputs["display-message -t test_wtree:0.0 -p #{pane_id}"] = "%0"
+	mock.outputs["split-window -h -t %0 -P -F #{pane_id}"] = "%1"
+	mock.outputs["display-message -p #{window_width}"] = "200"
+	mock.outputs["split-window -v -p 40 -t %0 -P -F #{pane_id}"] = "%10"
+	mock.outputs["split-window -v -p 40 -t %1 -P -F #{pane_id}"] = "%11"
+	runner = mock
+
+	origIsGitRepo := isGitRepo
+	isGitRepo = func() bool { return true }
+	defer func() { isGitRepo = origIsGitRepo }()
+
+	var cleanedSession string
+	var cleanedN int
+	origCleanup := cleanupWorktrees
+	cleanupWorktrees = func(sessionName string, n int) {
+		cleanedSession = sessionName
+		cleanedN = n
+	}
+	defer func() { cleanupWorktrees = origCleanup }()
+
+	err := runWtree("test_wtree", 2, "test: wtree")
+	if err != nil {
+		t.Fatalf("runWtree returned error: %v", err)
+	}
+
+	if cleanedSession != "test_wtree" {
+		t.Errorf("expected cleanup for session %q, got %q", "test_wtree", cleanedSession)
+	}
+	if cleanedN != 2 {
+		t.Errorf("expected cleanup for %d worktrees, got %d", 2, cleanedN)
 	}
 }
 
