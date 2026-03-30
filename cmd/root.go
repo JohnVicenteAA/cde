@@ -104,3 +104,21 @@ var gitFetch = func(dir string) error {
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
+
+// cleanupWorktrees removes existing worktrees for a session so that
+// new ones are created fresh from latest main.
+var cleanupWorktrees = func(sessionName string, n int) {
+	for i := 0; i < n; i++ {
+		worktreeName := fmt.Sprintf("%s-%d", sessionName, i)
+		worktreePath := fmt.Sprintf(".claude/worktrees/%s", worktreeName)
+		if _, err := os.Stat(worktreePath); err == nil {
+			cmd := exec.Command("git", "worktree", "remove", "--force", worktreePath)
+			if err := cmd.Run(); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: failed to remove worktree %s: %v\n", worktreeName, err)
+			}
+		}
+	}
+	if err := exec.Command("git", "worktree", "prune").Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: git worktree prune failed: %v\n", err)
+	}
+}
