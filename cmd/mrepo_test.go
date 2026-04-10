@@ -394,6 +394,36 @@ func TestRunMrepoReposWithoutLabel(t *testing.T) {
 	}
 }
 
+func TestRunMrepoRepoNameWithDots(t *testing.T) {
+	defer stubNotGitRepo()()
+	defer stubGitFetch()()
+	defer stubLabel("fix")()
+
+	repos := []string{"stateful_responses", "responses.js"}
+	// Dots in repo names must be replaced so tmux doesn't misparse targets
+	sn := "mrepo_fix_stateful_responses_responses_js"
+	mock := setupMrepoMock(sn, repos)
+
+	origDiscover := discoverGitRepos
+	discoverGitRepos = func(dir string) ([]string, error) { return repos, nil }
+	defer func() { discoverGitRepos = origDiscover }()
+
+	origSelect := selectRepos
+	selectRepos = func(r []string) ([]string, error) { return repos, nil }
+	defer func() { selectRepos = origSelect }()
+
+	if err := runMrepo("", nil); err != nil {
+		t.Fatalf("runMrepo returned error: %v", err)
+	}
+
+	if mock.attached != sn {
+		t.Errorf("expected attach to %q, got %q", sn, mock.attached)
+	}
+	if !mock.hasCall("new-session", "-d", "-s", sn) {
+		t.Error("expected new-session with sanitized session name")
+	}
+}
+
 func TestRunMrepoNonInteractiveInvalidRepo(t *testing.T) {
 	defer stubNotGitRepo()()
 	dir := t.TempDir()

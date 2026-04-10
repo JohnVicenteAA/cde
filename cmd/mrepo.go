@@ -137,6 +137,9 @@ func runMrepo(flagLabel string, flagRepos []string) error {
 	}
 
 	sessionName := "mrepo_" + label + "_" + strings.Join(selected, "_")
+	// Dots and colons are tmux target separators — replace them so the
+	// session name is never misinterpreted as session.pane or session:window.
+	sessionName = strings.NewReplacer(".", "_", ":", "_").Replace(sessionName)
 
 	reattach, err := handleExistingSession(sessionName)
 	if err != nil || reattach {
