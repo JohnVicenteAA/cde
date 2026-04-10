@@ -164,7 +164,7 @@ func TestRunMrepoSendKeys(t *testing.T) {
 		for _, c := range mock.calls {
 			if len(c.args) >= 4 && c.args[0] == "send-keys" && c.args[2] == paneID {
 				cmd := c.args[3]
-				if contains(cmd, "lazygit") && contains(cmd, "git worktree add -b test/") {
+				if contains(cmd, "lazygit") && contains(cmd, "git worktree add -B test/") {
 					found = true
 				}
 			}
@@ -328,8 +328,8 @@ func TestRunMrepoThreeRepos(t *testing.T) {
 		if len(c.args) >= 4 && c.args[0] == "send-keys" {
 			cmd := c.args[3]
 			if contains(cmd, "lazygit") {
-				if !contains(cmd, "git worktree add -b test/") {
-					t.Errorf("expected git worktree add -b test/<repo> in: %s", cmd)
+				if !contains(cmd, "git worktree add -B test/") {
+					t.Errorf("expected git worktree add -B test/<repo> in: %s", cmd)
 				}
 			}
 		}

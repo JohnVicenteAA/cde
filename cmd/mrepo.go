@@ -192,8 +192,8 @@ func runMrepo(flagLabel string, flagRepos []string) error {
 		branchName := fmt.Sprintf("%s/%s", label, repoName)
 		worktreePath := filepath.Join(repoPath, ".claude", "worktrees", fmt.Sprintf("%s-%s", label, repoName))
 		runner.Run("send-keys", "-t", pane,
-			fmt.Sprintf("cd %s && git worktree add -b %s %s origin/main && lazygit -p %s",
-				repoPath, branchName, worktreePath, worktreePath), "Enter")
+			fmt.Sprintf("cd %s && git worktree remove --force %s 2>/dev/null; git worktree add -B %s %s origin/main && lazygit -p %s",
+				repoPath, worktreePath, branchName, worktreePath, worktreePath), "Enter")
 	}
 
 	runner.Run("select-pane", "-t", topPane)
